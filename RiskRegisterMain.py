@@ -1,6 +1,5 @@
-
 import RiskRegisterCSV
-import RiskRegisterSQL  # Assuming you have similar functions for SQL
+import RiskRegisterSQL
 from tkinter import Tk, IntVar, filedialog
 import customtkinter as ct
 from customtkinter import *
