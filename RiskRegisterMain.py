@@ -1,5 +1,6 @@
+
 import RiskRegisterCSV
-import RiskRegisterSQL
+import RiskRegisterSQL  # Assuming you have similar functions for SQL
 from tkinter import Tk, IntVar, filedialog
 import customtkinter as ct
 from customtkinter import *
@@ -7,12 +8,15 @@ import os
 import configparser
 import base64
 import sqlite3
+
 global sql_boolean
 global label_file
 global csv_boolean
 global file_name
+
 sql_boolean = True
 csv_boolean = False
+csv_file_path = ""  # Path to the selected CSV file
 
 ##Author: Andrew Kubat, Alexander Roberts
 ##Purpose: Main portion of the Risk Register Automated Management System (RRAMS). This file will run all necessary code
@@ -25,17 +29,17 @@ csv_boolean = False
 
 ##This module is used to determine GUI navigation
 
-
-
-
 # Function to swap between SQL and CSV mode
 def mode_Swap():
     RR_mode = mode_toggle.get()
+    global sql_boolean, csv_boolean
     if RR_mode:
+        sql_boolean = False
+        csv_boolean = True
         print("I'm in CSV mode")
     else:
-        conect = sqlite3.connect('risk_reg.db')
-        cursor = conect.cursor()
+        sql_boolean = True
+        csv_boolean = False
         print("I'm in SQL mode")
     save_config()
 
@@ -54,6 +58,7 @@ def save_config():
     config.read("config.ini")
     config.set('General', 'style_toggle_slider', str(style_toggle_slider.get()))
     config.set('General', 'mode_toggle_val', str(mode_toggle.get()))
+    config.set('General', 'csv_file_path', csv_file_path)
     with open("config.ini", "w") as configFile:
         config.write(configFile)
 
@@ -66,8 +71,8 @@ def load_config():
         mode_style_change()
         mode_toggle.set(int(config['General']['mode_toggle_val']))
         mode_Swap()
-
-# Function to handle file selection
+        global csv_file_path
+        csv_file_path = config['General'].get('csv_file_path', '')
 
 # Function to create initial configuration file
 def create_config(style):
@@ -76,7 +81,7 @@ def create_config(style):
         testpass = "password123"
         encoded_pass = base64.b64encode(testpass.encode("utf-8")).decode("utf-8")  # Encode and decode the password
         config['Database'] = {'db_name': 'tempName', 'db_host': 'tempName', 'db_pass': encoded_pass, 'db_port': '5432'}
-        config['General'] = {'style_toggle_slider': str(style), 'mode_toggle_val': '1'}
+        config['General'] = {'style_toggle_slider': str(style), 'mode_toggle_val': '1', 'csv_file_path': ''}
         with open("config.ini", "w") as configFile:
             config.write(configFile)
 
@@ -88,14 +93,19 @@ def debug_pass():
     decoded_pass = base64.b64decode(encoded_pass).decode("utf-8")
     print("Decoded Password:", decoded_pass)
 
-# Main function to initialize the GUI
-def main():
-    def button_clicked():
-        fileDir = filedialog.askopenfilename()
-        # Do something with the filename, like displaying it on a label
+# Function to handle file selection
+def select_file():
+    global csv_file_path
+    fileDir = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    if fileDir:
+        csv_file_path = fileDir
         filename = os.path.basename(fileDir)
         label_file.configure(text="Selected File: " + filename)
-        print("Button is Working")
+        save_config()
+        print("CSV file selected:", csv_file_path)
+
+# Main function to initialize the GUI
+def main():
     def on_close():
         uiRoot.quit()  # Quit the main loop when the main dashboard is closed
 
@@ -127,9 +137,7 @@ def main():
     uiRoot.protocol("WM_DELETE_WINDOW", on_close)
     file_name = "Click me to choose your file"
 
-
-
-    button = CTkButton(uiRoot, text=file_name, command=button_clicked)
+    button = CTkButton(uiRoot, text=file_name, command=select_file)
     button.pack(pady=90)
 
     uiRoot.mainloop()
